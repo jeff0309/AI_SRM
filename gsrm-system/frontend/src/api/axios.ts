@@ -24,12 +24,22 @@ if (isMock) {
 
     if (url.includes('/auth/login')) mockResult = mockLoginResponse;
     else if (url.includes('/ground-stations/enabled')) mockResult = mockGroundStations;
+    else if (url.includes('/ground-stations')) mockResult = { content: mockGroundStations, totalElements: mockGroundStations.length, totalPages: 1, size: 20, number: 0 };
     else if (url.includes('/satellites/enabled')) mockResult = mockSatellites;
+    else if (url.includes('/satellites/companies')) mockResult = ['NSPO', 'MoST', 'NCU', 'TASA', 'SpaceX', 'ESA'];
+    else if (url.includes('/satellites')) mockResult = { content: mockSatellites, totalElements: mockSatellites.length, totalPages: 1, size: 20, number: 0 };
     else if (url.includes('/schedule/sessions')) {
       if (url.match(/\/schedule\/sessions\/\d+\/gantt/)) mockResult = mockGanttData;
+      else if (url.match(/\/schedule\/sessions\/\d+$/)) {
+        const id = parseInt(url.split('/').pop() || '1');
+        mockResult = mockSessions.content.find(s => s.id === id) || mockSessions.content[0];
+      }
       else mockResult = mockSessions;
     }
-    else if (url.includes('/schedule/strategies')) mockResult = ['Proportional', 'NoShortening'];
+    else if (url.includes('/schedule/strategies')) mockResult = ['Proportional', 'PriorityFirst', 'MaxThroughput', 'NoShortening'];
+    else if (url.includes('/history/ground-stations')) mockResult = [
+      { id: 1, startTime: new Date().toISOString(), endTime: new Date(Date.now() + 3600000).toISOString(), reason: '設備維護' }
+    ];
 
     if (mockResult) {
       // 透過 reject 傳遞模擬回應，稍後在回應攔截器中轉為成功
