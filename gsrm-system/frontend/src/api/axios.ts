@@ -2,6 +2,7 @@ import axios, { InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import { mockLoginResponse, mockGroundStations, mockSatellites, mockSessions, mockGanttData, wrapResponse } from './mockData';
 
 const isMock = window.location.hostname.includes('github.io') || window.location.search.includes('mock=true');
+const BASE_PATH = isMock ? '/AI_SRM/' : '/';
 
 /**
  * 建立 Axios 實例並設定基礎 URL 與攔截器.
@@ -50,8 +51,10 @@ if (isMock) {
   api.interceptors.response.use(
     (response: AxiosResponse) => response,
     (error: any) => {
-      if (error.response && error.response.status === 200) {
-        return error.response;
+      if (error.response?.status === 401) {
+        localStorage.removeItem('gsrm_token');
+        localStorage.removeItem('gsrm_user');
+        window.location.href = `${BASE_PATH}login`;
       }
       return Promise.reject(error);
     }

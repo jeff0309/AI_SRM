@@ -25,9 +25,11 @@ if (!rootElement) {
   throw new Error('Root element #root not found in index.html');
 }
 
+const basename = window.location.hostname.includes('github.io') ? '/AI_SRM/' : '/';
+
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={basename}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <App />

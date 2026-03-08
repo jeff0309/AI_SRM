@@ -36,7 +36,9 @@ jobs:
         working-directory: gsrm-system/frontend
 
       - name: Build
-        run: npm run build
+        run: |
+          npm run build
+          cp dist/index.html dist/404.html
         working-directory: gsrm-system/frontend
 
       - name: Upload artifact
