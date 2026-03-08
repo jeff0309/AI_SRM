@@ -22,6 +22,9 @@ export default function Layout({ children }: LayoutProps) {
   const navigate         = useNavigate();
   const location         = useLocation();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [isDesktopCollapsed, setDesktopCollapsed] = useState(() => {
+    return localStorage.getItem('sidebar-collapsed') === 'true';
+  });
 
   const handleLogout = () => {
     logout();
@@ -31,8 +34,16 @@ export default function Layout({ children }: LayoutProps) {
   const toggleSidebar = () => setSidebarOpen(!isSidebarOpen);
   const closeSidebar = () => setSidebarOpen(false);
 
+  const toggleDesktop = () => {
+    const next = !isDesktopCollapsed;
+    setDesktopCollapsed(next);
+    localStorage.setItem('sidebar-collapsed', String(next));
+  };
+
+  const sidebarWidth = isDesktopCollapsed ? 0 : 220;
+
   return (
-    <div style={styles.wrapper}>
+    <div style={{ ...styles.wrapper, overflow: 'hidden' }}>
       {/* Mobile Header */}
       <header style={styles.mobileHeader}>
         <button onClick={toggleSidebar} style={styles.menuBtn}>☰</button>
@@ -46,8 +57,12 @@ export default function Layout({ children }: LayoutProps) {
       {/* Sidebar */}
       <nav style={{
         ...styles.sidebar,
-        transform: isSidebarOpen ? 'translateX(0)' : undefined,
+        width: sidebarWidth,
+        transform: isSidebarOpen ? 'translateX(0)' : (isDesktopCollapsed ? 'translateX(-220px)' : 'none'),
         left: isSidebarOpen ? 0 : undefined,
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        opacity: isDesktopCollapsed && !isSidebarOpen ? 0 : 1,
+        visibility: isDesktopCollapsed && !isSidebarOpen ? 'hidden' : 'visible',
       }} className={isSidebarOpen ? 'active' : ''}>
         <div style={styles.logo}>
           <span style={styles.logoText}>GSRM</span>
@@ -71,6 +86,17 @@ export default function Layout({ children }: LayoutProps) {
           ))}
         </ul>
 
+        {/* Desktop Toggle Button inside sidebar */}
+        <div style={{ padding: '0 20px 10px', textAlign: 'right' }}>
+           <button 
+             onClick={toggleDesktop} 
+             style={{ ...styles.logoutBtn, width: 'auto', border: 'none', background: 'rgba(255,255,255,0.05)' }}
+             title="收合導覽列"
+           >
+             ◀ 收合
+           </button>
+        </div>
+
         <div style={styles.userInfo}>
           <div style={styles.username}>{user?.username}</div>
           <div style={styles.role}>{user?.role}</div>
@@ -78,8 +104,41 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </nav>
 
+      {/* Collapsed Toggle Handle (desktop only, fixed left) */}
+      {isDesktopCollapsed && (
+        <button
+          onClick={toggleDesktop}
+          style={{
+            position: 'fixed',
+            left: 0,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: 24,
+            height: 60,
+            background: '#161b22',
+            color: '#c9d1d9',
+            border: '1px solid #30363d',
+            borderLeft: 'none',
+            borderRadius: '0 8px 8px 0',
+            cursor: 'pointer',
+            zIndex: 900,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '2px 0 10px rgba(0,0,0,0.2)',
+          }}
+          title="展開導覽列"
+        >
+          ▶
+        </button>
+      )}
+
       {/* Main content */}
-      <main style={styles.main}>
+      <main style={{ 
+        ...styles.main,
+        marginLeft: 0, 
+        transition: 'padding 0.3s cubic-bezier(0.4, 0, 0.2, 1)' 
+      }}>
         {children}
       </main>
 
@@ -88,13 +147,16 @@ export default function Layout({ children }: LayoutProps) {
           nav {
             position: fixed !important;
             top: 0;
-            left: -220px;
+            left: -220px !important;
+            width: 220px !important;
             height: 100vh;
             z-index: 1000;
-            transition: transform 0.3s ease;
+            transition: transform 0.3s ease !important;
+            opacity: 1 !important;
+            visibility: visible !important;
           }
           nav.active {
-            transform: translateX(220px);
+            transform: translateX(220px) !important;
           }
           main {
             padding: 16px !important;
@@ -102,6 +164,9 @@ export default function Layout({ children }: LayoutProps) {
           }
           header {
             display: flex !important;
+          }
+          button[title="展開導覽列"] {
+            display: none !important;
           }
         }
       `}</style>

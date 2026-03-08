@@ -434,7 +434,7 @@ interface GanttRowProps {
 
 function GanttRow({ row, epochStart, totalMin, pxPerMin, onDeletePass, onDropPass, draggedPass, canEdit }: GanttRowProps) {
   const [tooltip, setTooltip] = useState<{ pass: PassItem; x: number; y: number } | null>(null);
-  const [dragOverMin, setDragOverMin] = useState<number | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   const totalWidth = totalMin * pxPerMin;
 
@@ -471,31 +471,36 @@ function GanttRow({ row, epochStart, totalMin, pxPerMin, onDeletePass, onDropPas
         onDragOver={(e) => {
           if (!canEdit) return;
           e.preventDefault();
-          const rect = e.currentTarget.getBoundingClientRect();
-          const x = e.clientX - rect.left;
-          setDragOverMin(x / pxPerMin);
+          setIsDragOver(true);
           e.dataTransfer.dropEffect = 'move';
         }}
-        onDragLeave={() => setDragOverMin(null)}
+        onDragLeave={() => setIsDragOver(false)}
         onDrop={(e) => {
           if (!canEdit) return;
           e.preventDefault();
-          setDragOverMin(null);
-          const rect = e.currentTarget.getBoundingClientRect();
-          const x = e.clientX - rect.left;
-          const dropMin = x / pxPerMin;
-          const dropTime = new Date(epochStart + dropMin * 60_000).toISOString();
+          setIsDragOver(false);
+          let dropTime: string;
+          const passData = JSON.parse(e.dataTransfer.getData('application/json')) as PassItem;
           
-          const passData = JSON.parse(e.dataTransfer.getData('application/json'));
-          onDropPass(row.groundStationId, passData.requestId || passData.passId, dropTime);
+          // 如果是待排程面板拉來的，預設到原始 AOS
+          if (passData.status === 'REJECTED') {
+            dropTime = passData.originalAos;
+          } else {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const dropMin = x / pxPerMin;
+            dropTime = new Date(epochStart + dropMin * 60_000).toISOString();
+          }
+          
+          onDropPass(row.groundStationId, passData.passId, dropTime);
         }}
       >
         {/* Shadow preview when dragging */}
-        {dragOverMin !== null && draggedPass && (
+        {isDragOver && draggedPass && (
           <div
             style={{
               position: 'absolute',
-              left: dragOverMin * pxPerMin,
+              left: toMinutes(draggedPass.originalAos, epochStart) * pxPerMin,
               width: ((normalizeDate(draggedPass.originalLos).getTime() - normalizeDate(draggedPass.originalAos).getTime()) / 60_000) * pxPerMin,
               top: (ROW_HEIGHT - PASS_BAR_H) / 2,
               height: PASS_BAR_H,
