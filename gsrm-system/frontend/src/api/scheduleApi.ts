@@ -59,4 +59,12 @@ export const scheduleApi = {
   /** 取得可用策略列表 */
   getAvailableStrategies: () =>
     api.get<ApiResponse<string[]>>('/schedule/strategies'),
+
+  /** 驗證 Pass */
+  validatePass: (data: { sessionId: number; requestId?: number; groundStationId: number; aos: string; los: string }) =>
+    api.post<ApiResponse<{ isConflict: boolean; message: string; conflictingPassId?: number; conflictType?: string }>>('/schedule/passes/validate', data),
+
+  /** 從需求手動新增 Pass */
+  addManualPassFromRequest: (requestId: number) =>
+    api.post<ApiResponse<unknown>>(`/schedule/passes/manual-from-request/${requestId}`),
 };

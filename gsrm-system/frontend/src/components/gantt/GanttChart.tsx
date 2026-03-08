@@ -9,6 +9,7 @@ import type {
   PassItem,
   ManualPassRequest,
   FrequencyBand,
+  PassValidationRequest,
 } from '../../types';
 
 // ─────────────────────────────────────────────────────────────
@@ -292,6 +293,88 @@ function PassTooltip({ pass, x, y }: PassTooltipProps) {
   );
 }
 
+/**
+ * 待排程 (已拒絕) Pass 面板
+ */
+interface UnscheduledPassPanelProps {
+  data: GanttChartData;
+  onDragStart: (e: React.DragEvent, pass: PassItem) => void;
+}
+
+function UnscheduledPassPanel({ data, onDragStart }: UnscheduledPassPanelProps) {
+  const rejectedPasses = useMemo(() => {
+    const allRejected: PassItem[] = [];
+    data.groundStations.forEach(gs => {
+      gs.passes.forEach(p => {
+        if (p.status === 'REJECTED') {
+          allRejected.push(p);
+        }
+      });
+    });
+    // 按 AOS 排序
+    return allRejected.sort((a, b) => normalizeDate(a.originalAos).getTime() - normalizeDate(b.originalAos).getTime());
+  }, [data]);
+
+  return (
+    <div style={{
+      width: 260,
+      background: '#fff',
+      borderLeft: '1px solid #dadce0',
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+    }}>
+      <div style={{
+        padding: '12px 16px',
+        borderBottom: '1px solid #dadce0',
+        fontWeight: 600,
+        fontSize: 14,
+        background: '#f8f9fa',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <span>待排程 Pass ({rejectedPasses.length})</span>
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
+        {rejectedPasses.length === 0 ? (
+          <div style={{ textAlign: 'center', color: '#9aa0a6', marginTop: 40, fontSize: 13 }}>
+            無待排程數據
+          </div>
+        ) : (
+          rejectedPasses.map(pass => (
+            <div
+              key={pass.passId}
+              draggable
+              onDragStart={(e) => onDragStart(e, pass)}
+              style={{
+                padding: '10px 12px',
+                border: '1px solid #dadce0',
+                borderRadius: 6,
+                marginBottom: 8,
+                cursor: 'grab',
+                background: '#fff',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = '#1a73e8'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = '#dadce0'}
+            >
+              <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{pass.satelliteName}</div>
+              <div style={{ fontSize: 11, color: '#5f6368', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                <span>AOS: {fmtHHMM(normalizeDate(pass.originalAos))}</span>
+                <span>LOS: {fmtHHMM(normalizeDate(pass.originalLos))}</span>
+              </div>
+              <div style={{ fontSize: 11, color: '#ea4335', marginTop: 4, fontStyle: 'italic' }}>
+                {pass.notes || '排程失敗'}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────
 // Gantt Row
 // ─────────────────────────────────────────────────────────────
@@ -302,10 +385,11 @@ interface GanttRowProps {
   totalMin:   number;
   pxPerMin:   number;
   onDeletePass: (passId: number) => void;
+  onDropPass: (gsId: number, requestId: number, dropTime: string) => void;
   canEdit:    boolean;
 }
 
-function GanttRow({ row, epochStart, totalMin, pxPerMin, onDeletePass, canEdit }: GanttRowProps) {
+function GanttRow({ row, epochStart, totalMin, pxPerMin, onDeletePass, onDropPass, canEdit }: GanttRowProps) {
   const [tooltip, setTooltip] = useState<{ pass: PassItem; x: number; y: number } | null>(null);
 
   const totalWidth = totalMin * pxPerMin;
@@ -338,6 +422,23 @@ function GanttRow({ row, epochStart, totalMin, pxPerMin, onDeletePass, canEdit }
           width: totalWidth,
           overflow: 'hidden',
           flexShrink: 0,
+          background: canEdit ? 'rgba(26, 115, 232, 0.02)' : 'transparent',
+        }}
+        onDragOver={(e) => {
+          if (!canEdit) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+        }}
+        onDrop={(e) => {
+          if (!canEdit) return;
+          e.preventDefault();
+          const rect = e.currentTarget.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const dropMin = x / pxPerMin;
+          const dropTime = new Date(epochStart + dropMin * 60_000).toISOString();
+          
+          const passData = JSON.parse(e.dataTransfer.getData('application/json'));
+          onDropPass(row.groundStationId, passData.requestId || passData.passId, dropTime);
         }}
       >
         {/* Unavailability blocks */}
@@ -581,6 +682,48 @@ export default function GanttChart({ sessionId }: GanttChartProps) {
     deleteMut.mutate(passId);
   }, [deleteMut]);
 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  const handleDragStart = (e: React.DragEvent, pass: PassItem) => {
+    e.dataTransfer.setData('application/json', JSON.stringify(pass));
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDropPass = async (gsId: number, requestId: number, dropTime: string) => {
+    // 獲取原始 Pass 資訊以計算持續時間
+    const pass = data?.groundStations.flatMap(gs => gs.passes).find(p => p.passId === requestId);
+    if (!pass) return;
+
+    const durationMs = normalizeDate(pass.originalLos).getTime() - normalizeDate(pass.originalAos).getTime();
+    const end = new Date(new Date(dropTime).getTime() + durationMs).toISOString();
+
+    // 1. 驗證
+    try {
+      const valRes = await scheduleApi.validatePass({
+        sessionId,
+        requestId,
+        groundStationId: gsId,
+        aos: dropTime,
+        los: end
+      });
+
+      if (valRes.data.data.isConflict) {
+        alert(`無法排入：${valRes.data.data.message}`);
+        return;
+      }
+
+      if (!window.confirm(`確定要將此 Pass 排入地面站 ${data?.groundStations.find(g => g.groundStationId === gsId)?.groundStationName}？`)) {
+        return;
+      }
+
+      // 2. 執行強制排入
+      await scheduleApi.addManualPassFromRequest(requestId);
+      qc.invalidateQueries({ queryKey: ['gantt', sessionId] });
+    } catch (err) {
+      alert(`操作失敗：${(err as Error).message}`);
+    }
+  };
+
   // ── Derived data ──
   const data: GanttChartData | undefined = ganttQuery.data;
 
@@ -747,10 +890,36 @@ export default function GanttChart({ sessionId }: GanttChartProps) {
               totalMin={totalMin}
               pxPerMin={pxPerMin}
               onDeletePass={handleDeletePass}
+              onDropPass={handleDropPass}
               canEdit={canEdit}
             />
           ))
         )}
+      </div>
+
+      <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end' }}>
+        <button
+          className="btn btn-secondary btn-sm"
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        >
+          {isSidebarOpen ? '隱藏待排程面板' : '顯示待排程面板'}
+        </button>
+      </div>
+
+      <div style={{
+        position: 'fixed',
+        right: isSidebarOpen ? 0 : -260,
+        top: 64, // below header
+        bottom: 0,
+        width: 260,
+        zIndex: 100,
+        transition: 'right 0.3s ease',
+        boxShadow: '-2px 0 10px rgba(0,0,0,0.1)',
+      }}>
+        <UnscheduledPassPanel
+          data={data}
+          onDragStart={handleDragStart}
+        />
       </div>
 
       {/* Manual Pass Modal */}

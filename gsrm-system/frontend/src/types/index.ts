@@ -248,3 +248,18 @@ export interface ManualPassRequest {
   los: string;
   notes?: string;
 }
+
+export interface PassValidationRequest {
+  sessionId: number;
+  requestId?: number;
+  groundStationId: number;
+  aos: string;
+  los: string;
+}
+
+export interface PassValidationResponse {
+  isConflict: boolean;
+  message: string;
+  conflictingPassId?: number;
+  conflictType?: string;
+}

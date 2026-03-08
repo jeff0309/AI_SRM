@@ -1,8 +1,10 @@
 package com.gsrm.service;
 
 import com.gsrm.domain.dto.request.ManualPassRequest;
+import com.gsrm.domain.dto.request.PassValidationRequest;
 import com.gsrm.domain.dto.request.ScheduleSessionRequest;
 import com.gsrm.domain.dto.response.GanttChartData;
+import com.gsrm.domain.dto.response.PassValidationResponse;
 import com.gsrm.domain.dto.response.ScheduleResultResponse;
 import com.gsrm.domain.dto.response.ScheduledPassDto;
 import com.gsrm.domain.entity.ScheduleSession;
@@ -103,6 +105,23 @@ public interface ScheduleService {
      * @param passId Pass ID
      */
     void removePass(Long passId);
+
+    /**
+     * 驗證單一 Pass 是否可排入.
+     * 
+     * @param request 驗證請求
+     * @return 驗證結果
+     */
+    PassValidationResponse validatePass(PassValidationRequest request);
+
+    /**
+     * 從衛星需求手動排入 Pass.
+     * 
+     * @param requestId 需求 ID
+     * @param userId 執行者 ID
+     * @return 建立的 Pass
+     */
+    ScheduledPass addManualPassFromRequest(Long requestId, Long userId);
 
     /**
      * 取得 Session 的所有已排程 Pass（含衛星/地面站名稱）.

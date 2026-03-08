@@ -1,8 +1,10 @@
 package com.gsrm.service.impl;
 
 import com.gsrm.domain.dto.request.ManualPassRequest;
+import com.gsrm.domain.dto.request.PassValidationRequest;
 import com.gsrm.domain.dto.request.ScheduleSessionRequest;
 import com.gsrm.domain.dto.response.GanttChartData;
+import com.gsrm.domain.dto.response.PassValidationResponse;
 import com.gsrm.domain.dto.response.ScheduleResultResponse;
 import com.gsrm.domain.dto.response.ScheduledPassDto;
 import com.gsrm.domain.entity.*;
@@ -12,6 +14,7 @@ import com.gsrm.exception.ResourceNotFoundException;
 import com.gsrm.exception.SchedulingException;
 import com.gsrm.repository.*;
 import com.gsrm.scheduler.SchedulingEngine;
+import com.gsrm.scheduler.model.TimeSlot;
 import com.gsrm.scheduler.strategy.StrategyFactory;
 import com.gsrm.service.ScheduleService;
 import lombok.RequiredArgsConstructor;
@@ -318,6 +321,105 @@ public class ScheduleServiceImpl implements ScheduleService {
         }
 
         passRepository.delete(pass);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public PassValidationResponse validatePass(PassValidationRequest req) {
+        ScheduleSession session = getSessionById(req.getSessionId());
+        GroundStation gs = groundStationRepository.findById(req.getGroundStationId())
+                .orElseThrow(() -> new ResourceNotFoundException("找不到地面站: " + req.getGroundStationId()));
+
+        LocalDateTime aos = req.getAos();
+        LocalDateTime los = req.getLos();
+
+        if (los == null || !los.isAfter(aos)) {
+            return PassValidationResponse.builder()
+                    .isConflict(true)
+                    .message("LOS 必須晚於 AOS")
+                    .conflictType("INVALID_TIME")
+                    .build();
+        }
+
+        // 1. 檢查維護時段
+        List<StationUnavailability> unavails = unavailRepository.findByGroundStationId(gs.getId());
+        for (StationUnavailability u : unavails) {
+            if (u.overlaps(aos, los)) {
+                return PassValidationResponse.builder()
+                        .isConflict(true)
+                        .message(String.format("地面站在 %s ~ %s 進行維護 (%s)", 
+                                u.getStartTime(), u.getEndTime(), u.getReason() != null ? u.getReason() : "無原因"))
+                        .conflictType("STATION_MAINTENANCE")
+                        .build();
+            }
+        }
+
+        // 2. 檢查現有已排程的 Pass (不包含自己，如果 requestId 相同)
+        List<ScheduledPass> existingPasses = passRepository.findGanttDataBySession(session.getId()).stream()
+                .filter(p -> p.getGroundStation().getId().equals(gs.getId()))
+                .filter(p -> Boolean.TRUE.equals(p.getIsAllowed()))
+                .filter(p -> req.getRequestId() == null || p.getSatelliteRequest() == null || !p.getSatelliteRequest().getId().equals(req.getRequestId()))
+                .collect(Collectors.toList());
+
+        TimeSlot candidateSlot = TimeSlot.builder().startTime(aos).endTime(los).build();
+        int gap = gs.getMinimumGap() != null ? gs.getMinimumGap() : 0;
+
+        for (ScheduledPass p : existingPasses) {
+            TimeSlot existingSlot = TimeSlot.builder()
+                    .startTime(p.getScheduledAos())
+                    .endTime(p.getScheduledLos())
+                    .build();
+            
+            if (candidateSlot.overlapsWithGap(existingSlot, gap)) {
+                return PassValidationResponse.builder()
+                        .isConflict(true)
+                        .message(String.format("與衛星 %s 的已排程 Pass 衝突 (間隔需求 %s 秒)", 
+                                p.getSatellite().getName(), gap))
+                        .conflictingPassId(p.getId())
+                        .conflictType("PASS_OVERLAP")
+                        .build();
+            }
+        }
+
+        return PassValidationResponse.builder()
+                .isConflict(false)
+                .message("驗證通過")
+                .build();
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional
+    public ScheduledPass addManualPassFromRequest(Long requestId, Long userId) {
+        SatelliteRequest req = requestRepository.findById(requestId)
+                .orElseThrow(() -> new ResourceNotFoundException("找不到衛星需求: " + requestId));
+        
+        ScheduleSession session = req.getScheduleSession();
+
+        // 檢查是否已經有對應的 Pass，若有則先移除或更新
+        passRepository.findByScheduleSessionIdAndSatelliteRequestId(session.getId(), requestId)
+                .ifPresent(passRepository::delete);
+
+        ScheduledPass pass = ScheduledPass.builder()
+                .scheduleSession(session)
+                .satelliteRequest(req)
+                .satellite(req.getSatellite())
+                .groundStation(req.getGroundStation())
+                .frequencyBand(req.getFrequencyBand())
+                .originalAos(req.getAos())
+                .originalLos(req.getLos())
+                .scheduledAos(req.getAos())
+                .scheduledLos(req.getLos())
+                .status(PassStatus.FORCED)
+                .isAllowed(true)
+                .isForced(true)
+                .createdBy(userId)
+                .build();
+
+        req.setStatus(PassStatus.FORCED);
+        requestRepository.save(req);
+
+        return passRepository.save(pass);
     }
 
     /** {@inheritDoc} */

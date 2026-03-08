@@ -1,9 +1,11 @@
 package com.gsrm.controller;
 
 import com.gsrm.domain.dto.request.ManualPassRequest;
+import com.gsrm.domain.dto.request.PassValidationRequest;
 import com.gsrm.domain.dto.request.ScheduleSessionRequest;
 import com.gsrm.domain.dto.response.ApiResponse;
 import com.gsrm.domain.dto.response.GanttChartData;
+import com.gsrm.domain.dto.response.PassValidationResponse;
 import com.gsrm.domain.dto.response.ScheduleResultResponse;
 import com.gsrm.domain.dto.response.ScheduledPassDto;
 import com.gsrm.domain.entity.ScheduleSession;
@@ -217,6 +219,39 @@ public class ScheduleController {
     public ResponseEntity<ApiResponse<Void>> removePass(@PathVariable Long passId) {
         scheduleService.removePass(passId);
         return ResponseEntity.ok(ApiResponse.success("Pass 已移除"));
+    }
+
+    /**
+     * 驗證單一 Pass 是否可排入.
+     * 
+     * @param request 驗證請求
+     * @return 驗證結果
+     */
+    @PostMapping("/passes/validate")
+    @Operation(summary = "驗證 Pass", description = "驗證手動拉入的 Pass 是否有衝突")
+    public ResponseEntity<ApiResponse<PassValidationResponse>> validatePass(
+            @Valid @RequestBody PassValidationRequest request) {
+        PassValidationResponse result = scheduleService.validatePass(request);
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    /**
+     * 從衛星需求手動排入 Pass.
+     * 
+     * @param requestId 需求 ID
+     * @param userDetails 當前使用者
+     * @return 建立的 Pass
+     */
+    @PostMapping("/passes/manual-from-request/{requestId}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('OPERATOR')")
+    @Operation(summary = "從需求新增 Pass", description = "將現有的衛星需求強制排入甘特圖")
+    public ResponseEntity<ApiResponse<ScheduledPass>> addManualPassFromRequest(
+            @PathVariable Long requestId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long userId = 1L; // 實際應從認證資訊中取得
+        ScheduledPass pass = scheduleService.addManualPassFromRequest(requestId, userId);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Pass 已從需求手動新增", pass));
     }
 
     /**
