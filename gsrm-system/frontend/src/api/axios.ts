@@ -2,7 +2,7 @@ import axios, { InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import { mockLoginResponse, mockGroundStations, mockSatellites, mockSessions, mockGanttData, wrapResponse } from './mockData';
 
 const isMock = window.location.hostname.includes('github.io') || window.location.search.includes('mock=true');
-const BASE_PATH = isMock ? '/AI_SRM/' : '/';
+const BASE_PATH = isMock ? '/AI_SRM' : '';
 
 /**
  * 建立 Axios 實例並設定基礎 URL 與攔截器.
@@ -61,7 +61,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// 3. 綜合回應攔截器 (處理 Mock 成功 & 401 自動登出)
+// 3. 綜合回應攔檢器 (處理 Mock 成功 & 401 自動登出)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -74,7 +74,8 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('gsrm_token');
       localStorage.removeItem('gsrm_user');
-      window.location.href = `${BASE_PATH}login`;
+      // HashRouter 的登入網址
+      window.location.hash = '/login';
     }
     return Promise.reject(error);
   }
