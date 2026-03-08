@@ -15,10 +15,10 @@ const api = axios.create({
   timeout: 30000,
 });
 
+// 1. Mock 請求攔截器 (偵測到特定 URL 就回傳模擬資料)
 if (isMock) {
   api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 500)); // 模擬網路延遲
 
     const url = config.url || '';
     let mockResult: any = null;
@@ -33,6 +33,7 @@ if (isMock) {
     else if (url.includes('/schedule/strategies')) mockResult = ['Proportional', 'NoShortening'];
 
     if (mockResult) {
+      // 透過 reject 傳遞模擬回應，稍後在回應攔截器中轉為成功
       return Promise.reject({
         config,
         response: {
@@ -46,22 +47,9 @@ if (isMock) {
     }
     return config;
   });
-
-  // Intercept the rejection and return it as a success if it's our mock
-  api.interceptors.response.use(
-    (response: AxiosResponse) => response,
-    (error: any) => {
-      if (error.response?.status === 401) {
-        localStorage.removeItem('gsrm_token');
-        localStorage.removeItem('gsrm_user');
-        window.location.href = `${BASE_PATH}login`;
-      }
-      return Promise.reject(error);
-    }
-  );
 }
 
-// 請求攔截器：自動加入 JWT Token
+// 2. JWT Token 請求攔截器
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('gsrm_token');
@@ -73,14 +61,20 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// 回應攔截器：處理 401 自動登出
+// 3. 綜合回應攔截器 (處理 Mock 成功 & 401 自動登出)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // 處理 Mock 模式的回傳 (模擬成功)
+    if (isMock && error.response && error.response.status === 200) {
+      return error.response;
+    }
+
+    // 處理 401 未授權 (跳轉登入)
     if (error.response?.status === 401) {
       localStorage.removeItem('gsrm_token');
       localStorage.removeItem('gsrm_user');
-      window.location.href = '/login';
+      window.location.href = `${BASE_PATH}login`;
     }
     return Promise.reject(error);
   }
