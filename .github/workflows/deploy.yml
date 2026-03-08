@@ -1,0 +1,39 @@
+name: Deploy Frontend to GitHub Pages
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'gsrm-system/frontend/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/node-js@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: gsrm-system/frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: gsrm-system/frontend
+
+      - name: Build
+        run: npm run build
+        working-directory: gsrm-system/frontend
+
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: gsrm-system/frontend/dist
+          branch: gh-pages
