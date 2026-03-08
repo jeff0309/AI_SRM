@@ -9,7 +9,6 @@ import type {
   PassItem,
   ManualPassRequest,
   FrequencyBand,
-  PassValidationRequest,
 } from '../../types';
 
 // ─────────────────────────────────────────────────────────────
