@@ -1,0 +1,62 @@
+# =============================================================================
+# Ground Station Resource Management System (GSRM)
+# Main Application Configuration
+# 
+# @author Jeff
+# @since 2026-03-06
+# =============================================================================
+
+spring:
+  application:
+    name: gsrm-system
+  
+  profiles:
+    active: dev
+  
+  # Jackson JSON Configuration
+  jackson:
+    time-zone: UTC
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+  # Servlet Configuration
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+# Server Configuration
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+# JWT Configuration
+jwt:
+  # Base64-encoded secret (must be >= 256 bits for HS256)
+  # echo -n "gsrmSecretKeyForJwtTokenGenerationMustBeAtLeast256BitsLongForHS256!!" | base64
+  secret: Z3NybVNlY3JldEtleUZvckp3dFRva2VuR2VuZXJhdGlvbk11c3RCZUF0TGVhc3QyNTZCaXRzTG9uZ0ZvckhTMjU2IQ==
+  expiration: 86400000  # 24 hours in milliseconds
+  refresh-expiration: 604800000  # 7 days in milliseconds
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.gsrm: DEBUG
+    org.springframework.security: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+# Springdoc OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operationsSorter: method
+    tagsSorter: alpha

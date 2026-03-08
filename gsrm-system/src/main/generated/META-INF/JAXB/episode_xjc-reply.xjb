@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<bindings version="3.0" xmlns="https://jakarta.ee/xml/ns/jaxb">
+  <!--
+
+此檔案是由 Eclipse Implementation of JAXB, v3.0.0 所產生 
+請參閱 https://eclipse-ee4j.github.io/jaxb-ri 
+一旦重新編譯來源綱要, 對此檔案所做的任何修改都將會遺失. 
+產生時間: 2026.03.06 於 10:28:11 PM CST 
+
+  -->
+  <bindings scd="x-schema::tns" xmlns:tns="http://gsrm.com/xml/reply">
+    <schemaBindings map="false">
+      <package name="com.gsrm.xml.reply"/>
+    </schemaBindings>
+    <bindings scd="~tns:ScheduleReplyType">
+      <class ref="com.gsrm.xml.reply.ScheduleReplyType"/>
+    </bindings>
+    <bindings scd="~tns:ReplyHeaderType">
+      <class ref="com.gsrm.xml.reply.ReplyHeaderType"/>
+    </bindings>
+    <bindings scd="~tns:SummaryType">
+      <class ref="com.gsrm.xml.reply.SummaryType"/>
+    </bindings>
+    <bindings scd="~tns:ScheduledPassListType">
+      <class ref="com.gsrm.xml.reply.ScheduledPassListType"/>
+    </bindings>
+    <bindings scd="~tns:ScheduledPassType">
+      <class ref="com.gsrm.xml.reply.ScheduledPassType"/>
+    </bindings>
+    <bindings scd="~tns:FrequencyBandType">
+      <typesafeEnumClass ref="com.gsrm.xml.reply.FrequencyBandType"/>
+    </bindings>
+    <bindings scd="~tns:PassStatusType">
+      <typesafeEnumClass ref="com.gsrm.xml.reply.PassStatusType"/>
+    </bindings>
+  </bindings>
+</bindings>
+

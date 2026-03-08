@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<bindings version="3.0" xmlns="https://jakarta.ee/xml/ns/jaxb">
+  <!--
+
+此檔案是由 Eclipse Implementation of JAXB, v3.0.0 所產生 
+請參閱 https://eclipse-ee4j.github.io/jaxb-ri 
+一旦重新編譯來源綱要, 對此檔案所做的任何修改都將會遺失. 
+產生時間: 2026.03.06 於 10:28:11 PM CST 
+
+  -->
+  <bindings scd="x-schema::tns" xmlns:tns="http://gsrm.com/xml/request">
+    <schemaBindings map="false">
+      <package name="com.gsrm.xml.request"/>
+    </schemaBindings>
+    <bindings scd="~tns:SatelliteRequestsType">
+      <class ref="com.gsrm.xml.request.SatelliteRequestsType"/>
+    </bindings>
+    <bindings scd="~tns:HeaderType">
+      <class ref="com.gsrm.xml.request.HeaderType"/>
+    </bindings>
+    <bindings scd="~tns:RequestListType">
+      <class ref="com.gsrm.xml.request.RequestListType"/>
+    </bindings>
+    <bindings scd="~tns:PassRequestType">
+      <class ref="com.gsrm.xml.request.PassRequestType"/>
+    </bindings>
+    <bindings scd="~tns:FrequencyBandType">
+      <typesafeEnumClass ref="com.gsrm.xml.request.FrequencyBandType"/>
+    </bindings>
+  </bindings>
+</bindings>
+

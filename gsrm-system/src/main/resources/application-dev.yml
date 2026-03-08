@@ -1,0 +1,47 @@
+# =============================================================================
+# Ground Station Resource Management System (GSRM)
+# Development Environment Configuration
+# 
+# @author Jeff
+# @since 2026-03-06
+# =============================================================================
+
+spring:
+  # SQLite Database Configuration for Development
+  datasource:
+    url: jdbc:sqlite:./data/gsrm-dev.db
+    driver-class-name: org.sqlite.JDBC
+    # SQLite doesn't need username/password
+    hikari:
+      maximum-pool-size: 1  # SQLite only supports single connection
+      connection-timeout: 30000
+  
+  # JPA / Hibernate Configuration
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+        # SQLite specific settings
+        jdbc:
+          time_zone: UTC
+    # Disable open-in-view to avoid lazy loading issues
+    open-in-view: false
+  
+  # Initialize database with schema and data
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/schema.sql
+      data-locations: classpath:db/data.sql
+      continue-on-error: true
+
+# Development-specific logging
+logging:
+  level:
+    com.gsrm: DEBUG
+    org.springframework.web: DEBUG

@@ -1,0 +1,36 @@
+# =============================================================================
+# GSRMS — Development Profile
+# =============================================================================
+
+spring:
+  # SQLite
+  datasource:
+    url: jdbc:sqlite:./data/gsrms-dev.db
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      maximum-pool-size: 1
+      connection-timeout: 30000
+
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/schema.sql
+      data-locations: classpath:db/data.sql
+      continue-on-error: true
+
+logging:
+  level:
+    com.gsrms: DEBUG
+    org.springframework.web: DEBUG

@@ -1,0 +1,55 @@
+# =============================================================================
+# Ground Station Resource Management System (GSRMS)
+# Application Configuration
+# @author Jeff  @since 2026-03-06
+# =============================================================================
+
+spring:
+  application:
+    name: gsrms
+
+  profiles:
+    active: dev
+
+  # Jackson
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+    time-zone: UTC
+
+  # File upload
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+# Server
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+# JWT
+jwt:
+  secret: gsrms-secret-key-for-jwt-token-must-be-at-least-256-bits-long-for-hs256-algorithm
+  expiration: 86400000       # 24 h
+  refresh-expiration: 604800000  # 7 d
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.gsrms: DEBUG
+    org.springframework.security: INFO
+    org.hibernate.SQL: DEBUG
+
+# Springdoc / Swagger UI
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true

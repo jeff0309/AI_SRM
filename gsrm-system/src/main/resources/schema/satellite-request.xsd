@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Ground Station Resource Management System (GSRM)
+    Satellite Request XML Schema Definition
+    
+    This XSD defines the structure for importing satellite pass requests.
+    
+    @author Jeff
+    @since 2026-03-06
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://gsrm.com/xml/request"
+           xmlns:tns="http://gsrm.com/xml/request"
+           elementFormDefault="qualified">
+    
+    <!-- Root Element: SatelliteRequests -->
+    <xs:element name="SatelliteRequests" type="tns:SatelliteRequestsType"/>
+    
+    <!-- Complex Type: SatelliteRequestsType -->
+    <xs:complexType name="SatelliteRequestsType">
+        <xs:annotation>
+            <xs:documentation>
+                Root container for satellite pass requests.
+                Contains metadata and a list of individual pass requests.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="Header" type="tns:HeaderType"/>
+            <xs:element name="Requests" type="tns:RequestListType"/>
+        </xs:sequence>
+        <xs:attribute name="version" type="xs:string" default="1.0"/>
+    </xs:complexType>
+    
+    <!-- Complex Type: HeaderType -->
+    <xs:complexType name="HeaderType">
+        <xs:annotation>
+            <xs:documentation>
+                Header information for the request batch.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="RequestId" type="xs:string"/>
+            <xs:element name="GeneratedAt" type="xs:dateTime"/>
+            <xs:element name="SourceSystem" type="xs:string" minOccurs="0"/>
+            <xs:element name="SchedulePeriodStart" type="xs:dateTime"/>
+            <xs:element name="SchedulePeriodEnd" type="xs:dateTime"/>
+            <xs:element name="Description" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+    
+    <!-- Complex Type: RequestListType -->
+    <xs:complexType name="RequestListType">
+        <xs:sequence>
+            <xs:element name="PassRequest" type="tns:PassRequestType" 
+                        minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="count" type="xs:int"/>
+    </xs:complexType>
+    
+    <!-- Complex Type: PassRequestType -->
+    <xs:complexType name="PassRequestType">
+        <xs:annotation>
+            <xs:documentation>
+                Individual satellite pass request containing timing and station information.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="SatelliteName" type="xs:string"/>
+            <xs:element name="GroundStationName" type="xs:string"/>
+            <xs:element name="FrequencyBand" type="tns:FrequencyBandType"/>
+            <xs:element name="AOS" type="xs:dateTime">
+                <xs:annotation>
+                    <xs:documentation>Acquisition of Signal - Start time of the pass</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="LOS" type="xs:dateTime">
+                <xs:annotation>
+                    <xs:documentation>Loss of Signal - End time of the pass</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="MaxElevation" type="xs:decimal" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Maximum elevation angle in degrees</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="Priority" type="xs:int" minOccurs="0" default="5">
+                <xs:annotation>
+                    <xs:documentation>Request priority (1-10, 1 is highest)</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="IsEmergency" type="xs:boolean" minOccurs="0" default="false"/>
+            <xs:element name="Notes" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+    
+    <!-- Simple Type: FrequencyBandType -->
+    <xs:simpleType name="FrequencyBandType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="X"/>
+            <xs:enumeration value="S"/>
+            <xs:enumeration value="XS"/>
+        </xs:restriction>
+    </xs:simpleType>
+    
+</xs:schema>

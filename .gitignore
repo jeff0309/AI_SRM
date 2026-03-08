@@ -1,0 +1,16 @@
+.metadata/
+.settings/
+.project
+.classpath
+.factorypath
+target/
+*.log
+bin/
+.recommenders/
+build/
+.gradle/
+out/
+dist/
+node_modules/
+.DS_Store
+Thumbs.db

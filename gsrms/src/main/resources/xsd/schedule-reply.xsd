@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Ground Station Resource Management System (GSRMS)
+    Schedule Reply XML Schema Definition
+
+    NOTE: This XSD is used for documentation and runtime schema validation only.
+          Java binding classes are hand-written in com.gsrms.model.xml
+          (Java 21 + jaxb2-maven-plugin 3.1.0 are incompatible).
+
+    @author Jeff
+    @since 2026-03-06
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://gsrms.com/xml/reply"
+           xmlns:tns="http://gsrms.com/xml/reply"
+           elementFormDefault="qualified">
+
+    <xs:element name="ScheduleReply" type="tns:ScheduleReplyType"/>
+
+    <xs:complexType name="ScheduleReplyType">
+        <xs:sequence>
+            <xs:element name="Header"          type="tns:ReplyHeaderType"/>
+            <xs:element name="Summary"         type="tns:SummaryType"/>
+            <xs:element name="ScheduledPasses" type="tns:ScheduledPassListType"/>
+        </xs:sequence>
+        <xs:attribute name="version" type="xs:string" default="1.0"/>
+    </xs:complexType>
+
+    <xs:complexType name="ReplyHeaderType">
+        <xs:sequence>
+            <xs:element name="ReplyId"              type="xs:string"/>
+            <xs:element name="OriginalRequestId"    type="xs:string"   minOccurs="0"/>
+            <xs:element name="SessionId"            type="xs:string"/>
+            <xs:element name="SessionName"          type="xs:string"/>
+            <xs:element name="GeneratedAt"          type="xs:dateTime"/>
+            <xs:element name="SchedulePeriodStart"  type="xs:dateTime"/>
+            <xs:element name="SchedulePeriodEnd"    type="xs:dateTime"/>
+            <xs:element name="GeneratedBy"          type="xs:string"   minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="SummaryType">
+        <xs:sequence>
+            <xs:element name="TotalRequests"     type="xs:int"/>
+            <xs:element name="ScheduledCount"    type="xs:int"/>
+            <xs:element name="ShortenedCount"    type="xs:int"/>
+            <xs:element name="RejectedCount"     type="xs:int"/>
+            <xs:element name="ForcedCount"       type="xs:int"/>
+            <xs:element name="SuccessRate"       type="xs:decimal"/>
+            <xs:element name="ConflictsResolved" type="xs:int"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ScheduledPassListType">
+        <xs:sequence>
+            <xs:element name="Pass" type="tns:ScheduledPassType"
+                        minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="count" type="xs:int"/>
+    </xs:complexType>
+
+    <xs:complexType name="ScheduledPassType">
+        <xs:sequence>
+            <xs:element name="SatelliteName"     type="xs:string"/>
+            <xs:element name="GroundStationName"  type="xs:string"/>
+            <xs:element name="FrequencyBand"     type="tns:FrequencyBandType"/>
+            <xs:element name="OriginalAOS"       type="xs:dateTime"/>
+            <xs:element name="OriginalLOS"       type="xs:dateTime"/>
+            <xs:element name="ScheduledAOS"      type="xs:dateTime" minOccurs="0"/>
+            <xs:element name="ScheduledLOS"      type="xs:dateTime" minOccurs="0"/>
+            <xs:element name="Status"            type="tns:PassStatusType"/>
+            <xs:element name="IsAllowed"         type="xs:boolean"/>
+            <xs:element name="DurationSeconds"   type="xs:int"     minOccurs="0"/>
+            <xs:element name="ShortenedSeconds"  type="xs:int"     minOccurs="0"/>
+            <xs:element name="RejectionReason"   type="xs:string"  minOccurs="0"/>
+            <xs:element name="ConflictWith"      type="xs:string"  minOccurs="0"/>
+            <xs:element name="Notes"             type="xs:string"  minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id"                type="xs:string" use="required"/>
+        <xs:attribute name="originalRequestId" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:simpleType name="FrequencyBandType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="X"/>
+            <xs:enumeration value="S"/>
+            <xs:enumeration value="XS"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="PassStatusType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="SCHEDULED"/>
+            <xs:enumeration value="SHORTENED"/>
+            <xs:enumeration value="REJECTED"/>
+            <xs:enumeration value="CANCELLED"/>
+            <xs:enumeration value="FORCED"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+</xs:schema>
