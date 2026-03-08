@@ -7,9 +7,9 @@ interface LayoutProps {
 }
 
 const NAV_ITEMS = [
-  { path: '/',               label: '排程 Session' },
   { path: '/ground-stations', label: '地面站管理' },
   { path: '/satellites',      label: '衛星管理' },
+  { path: '/',               label: '排程 Session' },
   { path: '/import',          label: '資料匯入' },
   { path: '/history',         label: '歷史查詢' },
 ];

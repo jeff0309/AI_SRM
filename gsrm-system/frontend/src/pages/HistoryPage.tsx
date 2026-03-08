@@ -72,7 +72,9 @@ function SessionDetail({ session, onClose }: SessionDetailProps) {
   const [exportLoading, setExportLoading] = useState<'xml' | 'csv' | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
 
-  const passes = passesQuery.data ?? [];
+  const rawPasses = passesQuery.data;
+  const passes = Array.isArray(rawPasses) ? rawPasses : [];
+
   const filtered = useMemo(() =>
     passFilter === 'ALL'
       ? passes
@@ -102,7 +104,10 @@ function SessionDetail({ session, onClose }: SessionDetailProps) {
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal modal-xl" onClick={e => e.stopPropagation()}>
+      <div className="modal modal-xl" onClick={e => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}>
         <div className="modal-header">
           <div>
             <h3 className="modal-title">{session.name}</h3>
