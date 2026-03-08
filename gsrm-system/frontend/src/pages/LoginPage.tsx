@@ -10,6 +10,7 @@ export default function LoginPage() {
   const navigate   = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
 
@@ -51,14 +52,24 @@ export default function LoginPage() {
 
           <div style={styles.field}>
             <label style={styles.label}>密碼</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={styles.input}
-              placeholder="請輸入密碼"
-              required
-            />
+            <div style={styles.passwordWrapper}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                style={{ ...styles.input, paddingRight: '40px', width: '100%' }}
+                placeholder="請輸入密碼"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={styles.toggleBtn}
+                title={showPassword ? '隱藏密碼' : '顯示密碼'}
+              >
+                {showPassword ? '👁️' : '🕶️'}
+              </button>
+            </div>
           </div>
 
           <button type="submit" style={styles.button} disabled={loading}>
@@ -77,18 +88,20 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#1a1a2e',
+    padding: '20px',
   },
   card: {
     backgroundColor: '#16213e',
     borderRadius: '12px',
     padding: '48px 40px',
-    width: '420px',
+    width: '100%',
+    maxWidth: '420px',
     boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
     border: '1px solid #0f3460',
   },
   title: {
     color: '#e94560',
-    fontSize: '18px',
+    fontSize: '20px',
     fontWeight: 700,
     textAlign: 'center',
     marginBottom: '8px',
@@ -124,6 +137,11 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '13px',
     fontWeight: 500,
   },
+  passwordWrapper: {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+  },
   input: {
     backgroundColor: '#0f3460',
     border: '1px solid #1a4a7a',
@@ -132,6 +150,19 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '14px',
     padding: '10px 14px',
     outline: 'none',
+  },
+  toggleBtn: {
+    position: 'absolute',
+    right: '8px',
+    background: 'none',
+    border: 'none',
+    color: '#8892b0',
+    cursor: 'pointer',
+    fontSize: '16px',
+    padding: '4px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   button: {
     backgroundColor: '#e94560',

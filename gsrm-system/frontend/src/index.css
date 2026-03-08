@@ -796,8 +796,78 @@ tbody td {
 }
 
 /* ---------- Responsive Utilities ---------- */
+@media (max-width: 1024px) {
+  :root {
+    --sidebar-width: 200px;
+  }
+}
+
 @media (max-width: 768px) {
-  .page-container { padding: var(--spacing-md); }
+  :root {
+    --spacing-xl: var(--spacing-md);
+    --font-size-2xl: 20px;
+    --font-size-3xl: 24px;
+  }
+
+  .page-container {
+    padding: var(--spacing-md);
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+
+  .page-header .btn {
+    width: 100%;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Table responsiveness - allow horizontal scroll but keep it contained */
+  .table-wrapper {
+    margin: 0 -16px;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  /* Gantt Chart specific responsiveness */
+  .gantt-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Modal responsiveness */
+  .modal {
+    max-height: 95vh;
+    margin: 10px;
+  }
+
+  .modal-footer {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .modal-footer .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+
+  .btn {
+    padding: 6px 12px;
+  }
+}
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .modal { margin: var(--spacing-md); }
 }
