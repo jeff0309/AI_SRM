@@ -7,7 +7,6 @@ import type {
   GanttChartData,
   GroundStationRow,
   PassItem,
-  UnavailabilityItem,
   ManualPassRequest,
   FrequencyBand,
 } from '../../types';
