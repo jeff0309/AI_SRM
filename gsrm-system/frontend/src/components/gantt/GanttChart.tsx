@@ -298,9 +298,10 @@ function PassTooltip({ pass, x, y }: PassTooltipProps) {
 interface UnscheduledPassPanelProps {
   data: GanttChartData;
   onDragStart: (e: React.DragEvent, pass: PassItem) => void;
+  onDragEnd: () => void;
 }
 
-function UnscheduledPassPanel({ data, onDragStart }: UnscheduledPassPanelProps) {
+function UnscheduledPassPanel({ data, onDragStart, onDragEnd }: UnscheduledPassPanelProps) {
   const rejectedPasses = useMemo(() => {
     const allRejected: PassItem[] = [];
     data.groundStations.forEach(gs => {
@@ -310,6 +311,47 @@ function UnscheduledPassPanel({ data, onDragStart }: UnscheduledPassPanelProps) 
         }
       });
     });
+
+    // 如果沒有數據，提供幾筆假資料供測試
+    if (allRejected.length === 0) {
+      const baseTime = normalizeDate(data.scheduleStartTime).getTime();
+      return [
+        {
+          passId: 9001,
+          satelliteId: 101,
+          satelliteName: 'MOCK-SAT-01',
+          frequencyBand: 'X',
+          originalAos: new Date(baseTime + 10 * 60_000).toISOString(),
+          originalLos: new Date(baseTime + 25 * 60_000).toISOString(),
+          scheduledAos: '', scheduledLos: '',
+          status: 'REJECTED', isAllowed: false, isForced: false,
+          notes: '頻段衝突 (模擬資料)',
+        },
+        {
+          passId: 9002,
+          satelliteId: 102,
+          satelliteName: 'MOCK-SAT-02',
+          frequencyBand: 'S',
+          originalAos: new Date(baseTime + 45 * 60_000).toISOString(),
+          originalLos: new Date(baseTime + 65 * 60_000).toISOString(),
+          scheduledAos: '', scheduledLos: '',
+          status: 'REJECTED', isAllowed: false, isForced: false,
+          notes: '地面站維護 (模擬資料)',
+        },
+        {
+          passId: 9003,
+          satelliteId: 103,
+          satelliteName: 'MOCK-SAT-03',
+          frequencyBand: 'X',
+          originalAos: new Date(baseTime + 120 * 60_000).toISOString(),
+          originalLos: new Date(baseTime + 140 * 60_000).toISOString(),
+          scheduledAos: '', scheduledLos: '',
+          status: 'REJECTED', isAllowed: false, isForced: false,
+          notes: '優先級不足 (模擬資料)',
+        },
+      ] as PassItem[];
+    }
+
     // 按 AOS 排序
     return allRejected.sort((a, b) => normalizeDate(a.originalAos).getTime() - normalizeDate(b.originalAos).getTime());
   }, [data]);
@@ -346,6 +388,7 @@ function UnscheduledPassPanel({ data, onDragStart }: UnscheduledPassPanelProps) 
               key={pass.passId}
               draggable
               onDragStart={(e) => onDragStart(e, pass)}
+              onDragEnd={onDragEnd}
               style={{
                 padding: '10px 12px',
                 border: '1px solid #dadce0',
@@ -385,11 +428,13 @@ interface GanttRowProps {
   pxPerMin:   number;
   onDeletePass: (passId: number) => void;
   onDropPass: (gsId: number, requestId: number, dropTime: string) => void;
+  draggedPass:  PassItem | null;
   canEdit:    boolean;
 }
 
-function GanttRow({ row, epochStart, totalMin, pxPerMin, onDeletePass, onDropPass, canEdit }: GanttRowProps) {
+function GanttRow({ row, epochStart, totalMin, pxPerMin, onDeletePass, onDropPass, draggedPass, canEdit }: GanttRowProps) {
   const [tooltip, setTooltip] = useState<{ pass: PassItem; x: number; y: number } | null>(null);
+  const [dragOverMin, setDragOverMin] = useState<number | null>(null);
 
   const totalWidth = totalMin * pxPerMin;
 
@@ -426,11 +471,16 @@ function GanttRow({ row, epochStart, totalMin, pxPerMin, onDeletePass, onDropPas
         onDragOver={(e) => {
           if (!canEdit) return;
           e.preventDefault();
+          const rect = e.currentTarget.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          setDragOverMin(x / pxPerMin);
           e.dataTransfer.dropEffect = 'move';
         }}
+        onDragLeave={() => setDragOverMin(null)}
         onDrop={(e) => {
           if (!canEdit) return;
           e.preventDefault();
+          setDragOverMin(null);
           const rect = e.currentTarget.getBoundingClientRect();
           const x = e.clientX - rect.left;
           const dropMin = x / pxPerMin;
@@ -440,6 +490,24 @@ function GanttRow({ row, epochStart, totalMin, pxPerMin, onDeletePass, onDropPas
           onDropPass(row.groundStationId, passData.requestId || passData.passId, dropTime);
         }}
       >
+        {/* Shadow preview when dragging */}
+        {dragOverMin !== null && draggedPass && (
+          <div
+            style={{
+              position: 'absolute',
+              left: dragOverMin * pxPerMin,
+              width: ((normalizeDate(draggedPass.originalLos).getTime() - normalizeDate(draggedPass.originalAos).getTime()) / 60_000) * pxPerMin,
+              top: (ROW_HEIGHT - PASS_BAR_H) / 2,
+              height: PASS_BAR_H,
+              background: PASS_COLOR.FORCED,
+              opacity: 0.4,
+              borderRadius: 4,
+              border: '2px dashed #9c27b0',
+              pointerEvents: 'none',
+              zIndex: 10,
+            }}
+          />
+        )}
         {/* Unavailability blocks */}
         {row.unavailabilities.map(u => {
           const left = toMinutes(u.startTime, epochStart) * pxPerMin;
@@ -682,10 +750,18 @@ export default function GanttChart({ sessionId }: GanttChartProps) {
   }, [deleteMut]);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [draggedPass, setDraggedPass] = useState<PassItem | null>(null);
 
   const handleDragStart = (e: React.DragEvent, pass: PassItem) => {
+    setDraggedPass(pass);
     e.dataTransfer.setData('application/json', JSON.stringify(pass));
     e.dataTransfer.effectAllowed = 'move';
+    
+    // Set a ghost image if needed, or just let browser handle it
+  };
+
+  const handleDragEnd = () => {
+    setDraggedPass(null);
   };
 
   const handleDropPass = async (gsId: number, requestId: number, dropTime: string) => {
@@ -890,15 +966,45 @@ export default function GanttChart({ sessionId }: GanttChartProps) {
               pxPerMin={pxPerMin}
               onDeletePass={handleDeletePass}
               onDropPass={handleDropPass}
+              draggedPass={draggedPass}
               canEdit={canEdit}
             />
           ))
         )}
       </div>
 
+      {/* Sidebar Toggle Handle (when closed) */}
+      {!isSidebarOpen && (
+        <button
+          onClick={() => setIsSidebarOpen(true)}
+          style={{
+            position: 'fixed',
+            right: 0,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: 24,
+            height: 60,
+            background: '#1a73e8',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '8px 0 0 8px',
+            cursor: 'pointer',
+            zIndex: 101,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '-2px 0 10px rgba(0,0,0,0.2)',
+          }}
+          title="顯示待排程面板"
+        >
+          ◀
+        </button>
+      )}
+
+      {/* Sidebar Toggle button in Toolbar */}
       <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end' }}>
         <button
-          className="btn btn-secondary btn-sm"
+          className={`btn ${isSidebarOpen ? 'btn-secondary' : 'btn-primary'} btn-sm`}
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
         >
           {isSidebarOpen ? '隱藏待排程面板' : '顯示待排程面板'}
@@ -915,9 +1021,36 @@ export default function GanttChart({ sessionId }: GanttChartProps) {
         transition: 'right 0.3s ease',
         boxShadow: '-2px 0 10px rgba(0,0,0,0.1)',
       }}>
+        {/* Sidebar Close Tab */}
+        {isSidebarOpen && (
+          <div
+            onClick={() => setIsSidebarOpen(false)}
+            style={{
+              position: 'absolute',
+              left: -20,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: 20,
+              height: 48,
+              background: '#fff',
+              border: '1px solid #dadce0',
+              borderRight: 'none',
+              borderRadius: '6px 0 0 6px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 10,
+              color: '#5f6368',
+            }}
+          >
+            ▶
+          </div>
+        )}
         <UnscheduledPassPanel
           data={data}
           onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
         />
       </div>
 
