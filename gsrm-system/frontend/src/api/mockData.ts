@@ -1,10 +1,9 @@
 import type { 
   ApiResponse, Page, GroundStation, Satellite, ScheduleSession, GanttChartData, 
-  LoginResponse, StationUnavailability, PassItem, GroundStationRow
+  LoginResponse, StationUnavailability, PassItem
 } from '../types';
 
 const now = new Date();
-const isoNow = now.toISOString();
 
 const getTime = (offsetHours: number) => {
   const d = new Date(now);
